@@ -14,6 +14,10 @@ int32_t recordedTime = 0;
 
 int canScore = 1;
 
+int continuousScore = 0;
+
+int latch = 0;
+
 const uint8_t SEG_MASKS_0_TO_9_INV[10] = {
   0b11000000,  // 0
   0b11111001,  // 1
@@ -61,27 +65,38 @@ void loop() {
     }
     if (isStarting == 1) {
       count = (millis() - recordedTime) / 1000;
-      digitalWrite(7, 0);
       // Serial.println(count);
     }
     if ((switchState == 0 || switchState2 == 0) && isStarting == 0) {
-      
+
       isStarting = 1;
       digitalWrite(7, 1);
       delay(500);
+      digitalWrite(7, 0);
       recordedTime = millis();
       delay(1);
       Serial.println(recordedTime);
-      
     }
-    
-    
+
+    if (ShouldRest == 1 && latch == 0) {
+      if(continuousScore == 1) {
+        continuousScore = 0;
+        digitalWrite(7, 0);
+      } else {
+        continuousScore = 1;
+        digitalWrite(7, 1);
+      }
+      latch = 1;
+    } 
+    else if (ShouldRest == 0){
+      latch = 0;
+    }
 
     // Serial.println(String(count) + " Test " + String(millis() - recordedTime));
 
   } else {
 
-    if ((((millis() - recordedTime) / 1000) % 10) < 5) {
+    if (continuousScore == 1) {
       if (switchState == 0) {
         if (running == false) {
           count = count + 1;
@@ -99,9 +114,30 @@ void loop() {
       } else {
         running2 = false;
       }
-      digitalWrite(7, 1);
     } else {
-      digitalWrite(7, 0);
+
+      if ((((millis() - recordedTime) / 1000) % 10) < 5) {
+        if (switchState == 0) {
+          if (running == false) {
+            count = count + 1;
+            running = true;
+          }
+        } else {
+          running = false;
+        }
+
+        if (switchState2 == 0) {
+          if (running2 == false) {
+            count = count + 1;
+            running2 = true;
+          }
+        } else {
+          running2 = false;
+        }
+        digitalWrite(7, 1);
+      } else {
+        digitalWrite(7, 0);
+      }
     }
 
 
@@ -122,6 +158,8 @@ void loop() {
       recordedTime = 0;
 
       canScore = 1;
+      continuousScore = 0;
+      while (digitalRead(12) == 1) {}
     }
   }
 
@@ -150,7 +188,7 @@ void loop() {
   if (currentDigit >= 3) currentDigit = 0;
 
 
-  
+
   delay(2);
 }
 
